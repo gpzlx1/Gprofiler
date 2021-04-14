@@ -66,7 +66,7 @@ class profiler(object):
             item["pid"] = self.output_name
             item["args"] = {}
             tracing_json.append(json.dumps(item))
-        print(tracing_json)
+
         with open(self.output_name + ".json", "w") as f:
             f.write('[\n')
             for i in range(len(tracing_json) - 1):
@@ -75,10 +75,6 @@ class profiler(object):
                 f.write("\t" + tracing_json[-1] + "\n")
             f.write(']')
             
-
-    
-
-    
 
 
 class record_function(object):
