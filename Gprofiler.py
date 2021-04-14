@@ -4,9 +4,7 @@ import time
 from typing import Any
 
 
-global global_curr_name
 global global_profiler
-global_curr_name = None
 global_profiler = None
 
 def get_profiler():
@@ -80,14 +78,11 @@ class profiler(object):
 class record_function(object):
     def __init__(self, name: str):
         self.name = name
-        self.abs_name = None
-        self.before_name = None
         self.begin = None
         self.end = None
       
         
     def __enter__(self):
-        global global_curr_name
         global global_profiler
 
         if global_profiler is None:
@@ -95,22 +90,10 @@ class record_function(object):
         if global_profiler.base is None:
             global_profiler.base = time.time()
 
-        self.before_name = global_curr_name
-
-        if global_curr_name is None:
-            global_curr_name = self.name
-        else:
-            global_curr_name = ".".join([global_curr_name, self.name])
-
-        self.abs_name = global_curr_name
         self.begin = time.time()
         
         
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
-        global global_curr_name
         global global_profiler
-
         self.end = time.time()
-
-        global_curr_name = self.before_name
-        global_profiler.__record__(self.abs_name, self.begin, self.end)
+        global_profiler.__record__(self.name, self.begin, self.end)
