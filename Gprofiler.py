@@ -31,6 +31,7 @@ class profiler(object):
         self.queue = Queue()
         self.records = []
         self._processed = False
+        self.base = None
         self._register_record_func = Manager().dict()
         if basetime_now:
             self.base = time.time()
@@ -42,6 +43,9 @@ class profiler(object):
         self.queue.put(record)
 
     def __process__(self):
+        if not self.enable:
+            return
+
         if self._processed:
             return 
 
@@ -50,20 +54,26 @@ class profiler(object):
             self.records.append(record)
 
         for item in self.records:
-
             item[1] = (item[1] - self.base) * 1e6
             item[2] = (item[2] - self.base) * 1e6
 
         self._processed = True
 
     def __check_no_thread_running__(self):
+        if not self.enable:
+            return
+
         if len(self._register_record_func) == 0:
             return
+
         for key, value in self._register_record_func.items():
             if value == 'Running':
                 print("[Warning] tid {} still running".format(key))
 
     def save_as_csv(self):
+        if not self.enable:
+            return
+
         self.__check_no_thread_running__()
         self.__process__()
         with open(self.output_name + '.csv', 'w') as csvfile:
@@ -72,6 +82,9 @@ class profiler(object):
             w.writerows(self.records)
             
     def save_as_tracing_json(self):
+        if not self.enable:
+            return
+
         self.__check_no_thread_running__()
         self.__process__()
         tracing_json = []
@@ -95,10 +108,15 @@ class profiler(object):
             f.write(']')
 
     def save_as_gporfiler(self):
+        if not self.enable:
+            return
         self.__check_no_thread_running__()
-        with open(self.output_name + ".gpout", "w") as f:
-            f.write(pickle.dumps(self))
-
+        self.__process__()
+        #bugs, must remove _thread.lock to enable pickle.dump
+        #will fix in the future
+        with open(self.output_name + ".gpout", "wb") as f:
+            pickle.dump((self.output_name, self.base, self.records), f)
+        
 
 class record_function(object):
     def __init__(self, name: str):
@@ -108,6 +126,9 @@ class record_function(object):
         self.threadID = threading.current_thread().ident
 
         global global_profiler
+        if global_profiler is None:
+            set_profiler(basetime_now=False)
+
         self.enable = global_profiler.enable and not global_profiler._processed
       
         
